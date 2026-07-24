@@ -248,12 +248,16 @@ let minScale = 1;
 let coverScale = 1;
 let wideScale = 1;
 const maxScale = 4.2;
+let mapBaseWidth = 0;
+let mapBaseHeight = 0;
 let activeLocation = null;
 let animationFrame = null;
+let renderFrame = null;
 const pointers = new Map();
 let dragStart = null;
 let pinchStart = null;
 let sheetDrag = null;
+let lastTap = { time: 0, x: 0, y: 0 };
 const defaultLocationId = "administration-building";
 
 function clamp(value, min, max) {
@@ -262,11 +266,8 @@ function clamp(value, min, max) {
 
 function renderTransform() {
   const rect = viewport.getBoundingClientRect();
-  const mapRect = transformEl.getBoundingClientRect();
-  const baseWidth = mapRect.width / view.scale;
-  const baseHeight = mapRect.height / view.scale;
-  const scaledWidth = baseWidth * view.scale;
-  const scaledHeight = baseHeight * view.scale;
+  const scaledWidth = mapBaseWidth * view.scale;
+  const scaledHeight = mapBaseHeight * view.scale;
   const minX = Math.min(0, rect.width - scaledWidth);
   const minY = Math.min(0, rect.height - scaledHeight);
 
@@ -276,8 +277,18 @@ function renderTransform() {
   transformEl.style.setProperty("--marker-scale", String(1 / view.scale));
 }
 
+function requestRender() {
+  if (renderFrame) return;
+  renderFrame = requestAnimationFrame(() => {
+    renderFrame = null;
+    renderTransform();
+  });
+}
+
 function animateTo(target, duration = 420) {
   cancelAnimationFrame(animationFrame);
+  cancelAnimationFrame(renderFrame);
+  renderFrame = null;
   const start = { ...view };
   const startTime = performance.now();
 
@@ -300,6 +311,7 @@ function animateTo(target, duration = 420) {
 }
 
 function setScaleAt(nextScale, originX, originY) {
+  cancelAnimationFrame(animationFrame);
   const oldScale = view.scale;
   const scale = clamp(nextScale, minScale, maxScale);
   const mapX = (originX - view.x) / oldScale;
@@ -308,7 +320,7 @@ function setScaleAt(nextScale, originX, originY) {
   view.scale = scale;
   view.x = originX - mapX * scale;
   view.y = originY - mapY * scale;
-  renderTransform();
+  requestRender();
 }
 
 function centerOn(location, zoom = 2.45) {
@@ -317,11 +329,8 @@ function centerOn(location, zoom = 2.45) {
 
 function getLocationView(location, zoom = 2.45) {
   const rect = viewport.getBoundingClientRect();
-  const baseRect = transformEl.getBoundingClientRect();
-  const baseWidth = baseRect.width / view.scale;
-  const baseHeight = baseRect.height / view.scale;
-  const centerX = (location.hotspot.x + location.hotspot.width / 2) / 100 * baseWidth;
-  const centerY = (location.hotspot.y + location.hotspot.height / 2) / 100 * baseHeight;
+  const centerX = (location.hotspot.x + location.hotspot.width / 2) / 100 * mapBaseWidth;
+  const centerY = (location.hotspot.y + location.hotspot.height / 2) / 100 * mapBaseHeight;
   const targetScale = clamp(Math.max(zoom, minScale), minScale, maxScale);
 
   return {
@@ -528,6 +537,8 @@ function setupInitialView() {
   const viewportRect = viewport.getBoundingClientRect();
   const mapWidth = Math.min(viewportRect.width, viewportRect.height * 1.6);
   const mapHeight = mapWidth / 1.6;
+  mapBaseWidth = mapWidth;
+  mapBaseHeight = mapHeight;
   transformEl.style.width = `${mapWidth}px`;
   wideScale = Math.min(viewportRect.width / mapWidth, viewportRect.height / mapHeight);
   coverScale = Math.max(viewportRect.width / mapWidth, viewportRect.height / mapHeight);
@@ -554,25 +565,33 @@ function showWideView() {
   infoPanel.setAttribute("aria-hidden", "true");
   closeResults();
   const viewportRect = viewport.getBoundingClientRect();
-  const mapHeight = (transformEl.getBoundingClientRect().height / view.scale);
-  animateTo({ x: 0, y: getWideY(viewportRect, mapHeight, wideScale), scale: wideScale }, 360);
+  animateTo({ x: 0, y: getWideY(viewportRect, mapBaseHeight, wideScale), scale: wideScale }, 360);
 }
 
 viewport.addEventListener("pointerdown", (event) => {
   if (event.target.closest(".hotspot")) return;
+  cancelAnimationFrame(animationFrame);
   viewport.setPointerCapture(event.pointerId);
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
   viewport.classList.add("is-dragging");
 
   if (pointers.size === 1) {
-    dragStart = { pointerX: event.clientX, pointerY: event.clientY, x: view.x, y: view.y };
+    dragStart = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      x: view.x,
+      y: view.y,
+      moved: false
+    };
   } else if (pointers.size === 2) {
     const points = Array.from(pointers.values());
+    const centerX = (points[0].x + points[1].x) / 2;
+    const centerY = (points[0].y + points[1].y) / 2;
     pinchStart = {
       distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y),
       scale: view.scale,
-      centerX: (points[0].x + points[1].x) / 2,
-      centerY: (points[0].y + points[1].y) / 2
+      mapX: (centerX - view.x) / view.scale,
+      mapY: (centerY - view.y) / view.scale
     };
   }
 });
@@ -582,23 +601,51 @@ viewport.addEventListener("pointermove", (event) => {
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
   if (pointers.size === 1 && dragStart) {
+    const moveX = event.clientX - dragStart.pointerX;
+    const moveY = event.clientY - dragStart.pointerY;
+    if (Math.hypot(moveX, moveY) > 4) dragStart.moved = true;
     view.x = dragStart.x + event.clientX - dragStart.pointerX;
     view.y = dragStart.y + event.clientY - dragStart.pointerY;
-    renderTransform();
+    requestRender();
   } else if (pointers.size === 2 && pinchStart) {
     const points = Array.from(pointers.values());
     const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
     const centerX = (points[0].x + points[1].x) / 2;
     const centerY = (points[0].y + points[1].y) / 2;
-    setScaleAt(pinchStart.scale * (distance / pinchStart.distance), centerX, centerY);
+    const scale = clamp(pinchStart.scale * (distance / pinchStart.distance), minScale, maxScale);
+    view.scale = scale;
+    view.x = centerX - pinchStart.mapX * scale;
+    view.y = centerY - pinchStart.mapY * scale;
+    requestRender();
   }
 });
 
 function endPointer(event) {
+  const wasTap = dragStart && !dragStart.moved && pointers.size === 1;
   pointers.delete(event.pointerId);
   viewport.classList.toggle("is-dragging", pointers.size > 0);
   if (pointers.size === 0) {
+    if (wasTap) {
+      const now = performance.now();
+      const distance = Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y);
+      if (now - lastTap.time < 280 && distance < 28) {
+        setScaleAt(view.scale < 2.2 ? 2.45 : wideScale, event.clientX, event.clientY);
+        lastTap = { time: 0, x: 0, y: 0 };
+      } else {
+        lastTap = { time: now, x: event.clientX, y: event.clientY };
+      }
+    }
     dragStart = null;
+    pinchStart = null;
+  } else if (pointers.size === 1) {
+    const remaining = Array.from(pointers.values())[0];
+    dragStart = {
+      pointerX: remaining.x,
+      pointerY: remaining.y,
+      x: view.x,
+      y: view.y,
+      moved: true
+    };
     pinchStart = null;
   }
 }
@@ -620,8 +667,6 @@ document.querySelector("#zoomOut").addEventListener("click", () => {
   const rect = viewport.getBoundingClientRect();
   setScaleAt(view.scale - 0.35, rect.width / 2, rect.height / 2);
 });
-
-document.querySelector("#resetMap").addEventListener("click", resetMap);
 
 cleanModeButton.addEventListener("click", () => {
   const isClean = appShell.classList.toggle("clean-mode");
