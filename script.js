@@ -222,6 +222,7 @@ const splashScreen = document.querySelector("#splashScreen");
 const transformEl = document.querySelector("#mapTransform");
 const hotspotsEl = document.querySelector("#hotspots");
 const selectionLayer = document.querySelector("#selectionLayer");
+const mapControls = document.querySelector(".map-controls");
 const searchInput = document.querySelector("#map-search");
 const resultsEl = document.querySelector(".results");
 const directoryList = document.querySelector("#directoryList");
@@ -237,6 +238,7 @@ const welcomeModal = document.querySelector("#welcomeModal");
 const closeWelcome = document.querySelector("#closeWelcome");
 const startMap = document.querySelector("#startMap");
 const quizLaunch = document.querySelector("#quizLaunch");
+const mobileQuizLaunch = document.querySelector("#mobileQuizLaunch");
 const quizModal = document.querySelector("#quizModal");
 const closeQuiz = document.querySelector("#closeQuiz");
 const quizProgress = document.querySelector("#quizProgress");
@@ -270,6 +272,7 @@ let pinchStart = null;
 let sheetDrag = null;
 let lastTap = { time: 0, x: 0, y: 0 };
 let suppressHotspotClickUntil = 0;
+let controlsTimer = null;
 const defaultLocationId = "administration-building";
 const quizQuestions = [
   {
@@ -319,6 +322,16 @@ function renderTransform() {
   transformEl.style.setProperty("--marker-scale", String(1 / view.scale));
 }
 
+function showMapControlsTemporarily() {
+  mapControls.classList.remove("is-muted");
+  clearTimeout(controlsTimer);
+  if (window.matchMedia("(max-width: 759px)").matches) {
+    controlsTimer = setTimeout(() => {
+      mapControls.classList.add("is-muted");
+    }, 2800);
+  }
+}
+
 function getLocationById(id) {
   return locations.find((location) => location.id === id);
 }
@@ -358,6 +371,7 @@ function animateTo(target, duration = 420) {
 
 function setScaleAt(nextScale, originX, originY) {
   cancelAnimationFrame(animationFrame);
+  showMapControlsTemporarily();
   const oldScale = view.scale;
   const scale = clamp(nextScale, minScale, maxScale);
   const mapX = (originX - view.x) / oldScale;
@@ -614,6 +628,7 @@ function showWideView() {
 
 viewport.addEventListener("pointerdown", (event) => {
   cancelAnimationFrame(animationFrame);
+  showMapControlsTemporarily();
   viewport.setPointerCapture(event.pointerId);
   const hotspot = event.target.closest(".hotspot");
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, hotspotId: hotspot?.dataset.id || null });
@@ -846,6 +861,7 @@ splashScreen.addEventListener("animationend", () => {
 });
 
 quizLaunch.addEventListener("click", openQuiz);
+mobileQuizLaunch.addEventListener("click", openQuiz);
 closeQuiz.addEventListener("click", closeQuizModal);
 quizNext.addEventListener("click", advanceQuiz);
 quizModal.addEventListener("click", (event) => {
@@ -933,6 +949,7 @@ document.addEventListener("click", (event) => {
 
 window.addEventListener("resize", () => {
   setupInitialView();
+  showMapControlsTemporarily();
   if (activeLocation) {
     renderSelection(activeLocation);
     centerOn(activeLocation, Math.max(view.scale, 2.2));
@@ -944,3 +961,4 @@ renderHotspots();
 renderDirectory();
 setupInitialView();
 focusLocation(locations.find((location) => location.id === defaultLocationId) || locations[0], 2.45, false);
+showMapControlsTemporarily();

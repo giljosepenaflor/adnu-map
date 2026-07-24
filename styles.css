@@ -68,14 +68,14 @@ button {
     radial-gradient(circle at 50% 42%, rgba(255, 211, 26, 0.22), transparent 32%),
     linear-gradient(160deg, #064c93, #0b78d0 58%, #055aa8);
   pointer-events: none;
-  animation: splashExit 1.45s cubic-bezier(0.2, 0.8, 0.2, 1) 0.55s both;
+  animation: splashExit 1.7s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
 }
 
 .splash-screen img {
   width: min(280px, 72vw);
   object-fit: contain;
   filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.22));
-  animation: splashLogo 1.45s cubic-bezier(0.18, 0.92, 0.28, 1) both;
+  animation: splashLogo 1.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .topbar {
@@ -87,6 +87,7 @@ button {
   display: grid;
   gap: 7px;
   pointer-events: none;
+  transition: left 220ms ease;
 }
 
 .directory {
@@ -147,6 +148,10 @@ button {
 
 .app-shell.directory-collapsed .directory-toggle span {
   transform: rotate(180deg);
+}
+
+.app-shell.directory-collapsed .topbar {
+  left: 12px;
 }
 
 .directory-heading {
@@ -267,6 +272,31 @@ button {
   border-radius: 10px;
   object-fit: contain;
   filter: drop-shadow(0 10px 18px rgba(8, 50, 96, 0.18));
+}
+
+.mobile-logo-button {
+  position: fixed;
+  z-index: 21;
+  top: calc(max(8px, env(safe-area-inset-top)) + 92px);
+  right: 8px;
+  display: grid;
+  width: 70px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  cursor: pointer;
+}
+
+.mobile-logo-button img {
+  display: block;
+  width: 70px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(8, 50, 96, 0.18));
 }
 
 .brand h1,
@@ -608,6 +638,13 @@ button {
   bottom: calc(24px + env(safe-area-inset-bottom));
   display: grid;
   gap: 6px;
+  opacity: 1;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.map-controls.is-muted {
+  opacity: 0.2;
+  transform: translateX(8px);
 }
 
 .tap-hint {
@@ -701,7 +738,7 @@ button {
 }
 
 .app-shell.clean-mode .topbar {
-  left: 10px;
+  left: 12px;
 }
 
 .control-button {
@@ -1087,25 +1124,25 @@ button {
 @keyframes splashLogo {
   0% {
     opacity: 0;
-    transform: scale(0.82);
+    transform: scale(0.88);
   }
   22% {
     opacity: 1;
     transform: scale(1);
   }
-  68% {
+  66% {
     opacity: 1;
-    transform: scale(1.08);
+    transform: scale(1.04);
   }
   100% {
     opacity: 0;
-    transform: scale(7);
+    transform: scale(4.6);
   }
 }
 
 @keyframes splashExit {
   0%,
-  72% {
+  70% {
     opacity: 1;
   }
   100% {
@@ -1126,6 +1163,10 @@ button {
     display: flex;
   }
 
+  .mobile-logo-button {
+    display: none;
+  }
+
   .map-transform {
     width: min(94vw, 1440px);
   }
@@ -1134,6 +1175,11 @@ button {
     right: 20px;
     bottom: 20px;
     gap: 7px;
+  }
+
+  .map-controls.is-muted {
+    opacity: 1;
+    transform: none;
   }
 
   .control-button {
@@ -1158,6 +1204,10 @@ button {
 
   .app-shell.directory-collapsed .directory-toggle {
     left: 0;
+  }
+
+  .app-shell.directory-collapsed .topbar {
+    left: 20px;
   }
 
   .directory-heading {
