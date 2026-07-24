@@ -312,6 +312,10 @@ function setScaleAt(nextScale, originX, originY) {
 }
 
 function centerOn(location, zoom = 2.45) {
+  animateTo(getLocationView(location, zoom));
+}
+
+function getLocationView(location, zoom = 2.45) {
   const rect = viewport.getBoundingClientRect();
   const baseRect = transformEl.getBoundingClientRect();
   const baseWidth = baseRect.width / view.scale;
@@ -320,18 +324,23 @@ function centerOn(location, zoom = 2.45) {
   const centerY = (location.hotspot.y + location.hotspot.height / 2) / 100 * baseHeight;
   const targetScale = clamp(Math.max(zoom, minScale), minScale, maxScale);
 
-  animateTo({
+  return {
     scale: targetScale,
     x: rect.width / 2 - centerX * targetScale,
     y: rect.height / 2 - centerY * targetScale
-  });
+  };
 }
 
-function focusLocation(location, zoom = 2.45) {
+function focusLocation(location, zoom = 2.45, animate = true) {
   activeLocation = location;
   renderSelection(location);
   updateActiveControls(location);
-  centerOn(location, zoom);
+  if (animate) {
+    centerOn(location, zoom);
+    return;
+  }
+  view = getLocationView(location, zoom);
+  renderTransform();
 }
 
 function renderHotspots() {
@@ -741,4 +750,4 @@ window.addEventListener("resize", () => {
 renderHotspots();
 renderDirectory();
 setupInitialView();
-focusLocation(locations.find((location) => location.id === defaultLocationId) || locations[0]);
+focusLocation(locations.find((location) => location.id === defaultLocationId) || locations[0], 2.45, false);
