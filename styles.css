@@ -678,6 +678,21 @@ button {
   transform: scale(0.96);
 }
 
+.tiny-credit {
+  position: fixed;
+  z-index: 16;
+  left: 50%;
+  bottom: calc(2px + env(safe-area-inset-bottom));
+  margin: 0;
+  color: rgba(16, 35, 63, 0.28);
+  font-size: 0.46rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .app-shell.clean-mode .directory,
 .app-shell.clean-mode .directory-toggle,
 .app-shell.clean-mode .tap-hint,
@@ -1238,6 +1253,11 @@ button {
 
   .map-follow-link strong {
     display: inline;
+  }
+
+  .tiny-credit {
+    bottom: 4px;
+    font-size: 0.52rem;
   }
 
   .app-shell.clean-mode .topbar {
