@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>KOMPAS Campus Map</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" aria-label="Ateneo de Naga University interactive campus map">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="assets/kompas-branding.png" alt="KOMPAS">
+        </div>
+
+        <form class="search" role="search" autocomplete="off">
+          <label class="sr-only" for="map-search">Search buildings, offices, or facilities</label>
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m21 21-4.35-4.35m1.35-5.15a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"></path>
+          </svg>
+          <input id="map-search" type="search" placeholder="Search buildings, offices, or facilities">
+          <button class="icon-button clear-search" type="button" aria-label="Clear search">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <div class="results" role="listbox" aria-label="Search results"></div>
+        </form>
+
+        <div class="view-toggles" aria-label="Display options">
+          <button class="pill-button" id="cleanMode" type="button" aria-pressed="false">Clean</button>
+          <button class="pill-button" id="wideView" type="button">Wide</button>
+          <button class="pill-button" id="viewLabeledMap" type="button">Full Map</button>
+          <button class="pill-button" id="downloadMap" type="button">Download</button>
+        </div>
+      </header>
+
+      <aside class="directory" aria-label="Building directory">
+        <div class="directory-heading">
+          <strong>BUILDINGS</strong>
+          <span id="directoryCount">0 locations</span>
+        </div>
+        <div class="directory-list" id="directoryList"></div>
+      </aside>
+      <button class="directory-toggle" id="directoryToggle" type="button" aria-label="Hide building list" aria-expanded="true">
+        <span aria-hidden="true">‹</span>
+      </button>
+
+      <section class="map-stage">
+        <div class="map-viewport" id="mapViewport">
+          <div class="map-transform" id="mapTransform">
+            <img class="campus-map" src="assets/no-names.png" alt="Illustrated map of Ateneo de Naga University campus" draggable="false">
+            <div class="hotspots" id="hotspots" aria-label="Campus locations"></div>
+            <div class="selection-layer" id="selectionLayer" aria-hidden="true"></div>
+          </div>
+        </div>
+
+        <div class="tap-hint" id="tapHint">
+          <span aria-hidden="true">?</span>
+          Tap a building, map code, or office code to view details.
+        </div>
+
+        <a class="map-follow-link" href="https://www.facebook.com/adnuorsem2026" target="_blank" rel="noopener" aria-label="Follow KOMPAS on Facebook">
+          <span aria-hidden="true">f</span>
+          <strong>Follow KOMPAS</strong>
+        </a>
+
+        <nav class="map-controls" aria-label="Map controls">
+          <button class="control-button" id="zoomIn" type="button" aria-label="Zoom in">+</button>
+          <button class="control-button" id="zoomOut" type="button" aria-label="Zoom out">-</button>
+          <button class="control-button reset-button" id="resetMap" type="button" aria-label="Reset map">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M3 12a9 9 0 1 0 3-6.7M3 4v6h6"></path>
+            </svg>
+          </button>
+        </nav>
+      </section>
+
+      <aside class="info-panel" id="infoPanel" aria-live="polite" aria-hidden="true">
+        <button class="panel-close" id="closePanel" type="button" aria-label="Close information panel">&times;</button>
+        <div class="sheet-handle" aria-hidden="true"></div>
+        <div class="panel-title-row">
+          <span class="selected-code" id="selectedAbbreviation">?</span>
+          <div>
+            <p class="selected-label">Building Profile</p>
+            <h2 id="selectedName">Campus Map</h2>
+          </div>
+        </div>
+        <p id="selectedDescription">Search or tap a highlighted area on the map to view details.</p>
+        <div>
+          <h3>Offices and Facilities</h3>
+          <ul id="selectedOffices"></ul>
+        </div>
+      </aside>
+
+      <div class="welcome-modal is-open" id="welcomeModal" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+        <div class="welcome-card">
+          <button class="welcome-close" id="closeWelcome" type="button" aria-label="Close welcome popup">&times;</button>
+          <img class="welcome-logo" src="assets/kompas-branding.png" alt="KOMPAS">
+          <h2 id="welcomeTitle">Charting Your Atenean Journey</h2>
+          <p>Use this campus map to navigate ADNU buildings, offices, gates, and event spots. Tap a code or building to zoom in and see details.</p>
+          <button class="welcome-start" id="startMap" type="button">Start Exploring</button>
+        </div>
+      </div>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
