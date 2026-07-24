@@ -254,6 +254,7 @@ const pointers = new Map();
 let dragStart = null;
 let pinchStart = null;
 let sheetDrag = null;
+const defaultLocationId = "administration-building";
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -324,6 +325,13 @@ function centerOn(location, zoom = 2.45) {
     x: rect.width / 2 - centerX * targetScale,
     y: rect.height / 2 - centerY * targetScale
   });
+}
+
+function focusLocation(location, zoom = 2.45) {
+  activeLocation = location;
+  renderSelection(location);
+  updateActiveControls(location);
+  centerOn(location, zoom);
 }
 
 function renderHotspots() {
@@ -733,3 +741,4 @@ window.addEventListener("resize", () => {
 renderHotspots();
 renderDirectory();
 setupInitialView();
+focusLocation(locations.find((location) => location.id === defaultLocationId) || locations[0]);
