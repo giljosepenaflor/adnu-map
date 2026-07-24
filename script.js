@@ -116,7 +116,7 @@ const locations = [
     name: "Belardo Hall",
     abbreviation: "HB",
     description: "Junior High School classrooms and principal's office.",
-    offices: ["SHS Strand Chairperson's Office", "SHS Classrooms", "Junior High School spaces"],
+    offices: ["SHS Strand Chairperson's Office", "SHS Classrooms"],
     hotspot: { x: 20.8, y: 44.0, width: 5.0, height: 15.3 }
   },
   {
