@@ -218,6 +218,7 @@ const locations = [
 ];
 
 const viewport = document.querySelector("#mapViewport");
+const splashScreen = document.querySelector("#splashScreen");
 const transformEl = document.querySelector("#mapTransform");
 const hotspotsEl = document.querySelector("#hotspots");
 const selectionLayer = document.querySelector("#selectionLayer");
@@ -235,6 +236,16 @@ const downloadMapButton = document.querySelector("#downloadMap");
 const welcomeModal = document.querySelector("#welcomeModal");
 const closeWelcome = document.querySelector("#closeWelcome");
 const startMap = document.querySelector("#startMap");
+const quizLaunch = document.querySelector("#quizLaunch");
+const quizModal = document.querySelector("#quizModal");
+const closeQuiz = document.querySelector("#closeQuiz");
+const quizProgress = document.querySelector("#quizProgress");
+const quizScore = document.querySelector("#quizScore");
+const quizTitle = document.querySelector("#quizTitle");
+const quizQuestion = document.querySelector("#quizQuestion");
+const quizOptions = document.querySelector("#quizOptions");
+const quizFeedback = document.querySelector("#quizFeedback");
+const quizNext = document.querySelector("#quizNext");
 const clearSearch = document.querySelector(".clear-search");
 const infoPanel = document.querySelector("#infoPanel");
 const closePanel = document.querySelector("#closePanel");
@@ -260,6 +271,36 @@ let sheetDrag = null;
 let lastTap = { time: 0, x: 0, y: 0 };
 let suppressHotspotClickUntil = 0;
 const defaultLocationId = "administration-building";
+const quizQuestions = [
+  {
+    question: "Which building is marked ADMIN on the map?",
+    options: ["Administration Building", "Adriatico Hall", "Arrupe Hall"],
+    answer: "Administration Building"
+  },
+  {
+    question: "Which gate is near Christ the King Church?",
+    options: ["Main Gate", "Second Gate", "Third Gate"],
+    answer: "Main Gate"
+  },
+  {
+    question: "Where can you find the main library?",
+    options: ["James O'Brien Library", "Bonoan Hall", "Sanz Hall"],
+    answer: "James O'Brien Library"
+  },
+  {
+    question: "Which location is best for large indoor sports activities?",
+    options: ["Covered Courts", "Faber Center", "Ricci Hall"],
+    answer: "Covered Courts"
+  },
+  {
+    question: "Which building code belongs to Phelan Hall?",
+    options: ["P", "RB", "SH"],
+    answer: "P"
+  }
+];
+let quizIndex = 0;
+let quizPoints = 0;
+let quizAnswered = false;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -276,6 +317,10 @@ function renderTransform() {
   view.y = scaledHeight <= rect.height ? (rect.height - scaledHeight) / 2 : clamp(view.y, minY, 0);
   transformEl.style.transform = `translate3d(${view.x}px, ${view.y}px, 0) scale(${view.scale})`;
   transformEl.style.setProperty("--marker-scale", String(1 / view.scale));
+}
+
+function getLocationById(id) {
+  return locations.find((location) => location.id === id);
 }
 
 function requestRender() {
@@ -570,7 +615,8 @@ function showWideView() {
 viewport.addEventListener("pointerdown", (event) => {
   cancelAnimationFrame(animationFrame);
   viewport.setPointerCapture(event.pointerId);
-  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  const hotspot = event.target.closest(".hotspot");
+  pointers.set(event.pointerId, { x: event.clientX, y: event.clientY, hotspotId: hotspot?.dataset.id || null });
   viewport.classList.add("is-dragging");
 
   if (pointers.size === 1) {
@@ -579,7 +625,8 @@ viewport.addEventListener("pointerdown", (event) => {
       pointerY: event.clientY,
       x: view.x,
       y: view.y,
-      moved: false
+      moved: false,
+      hotspotId: hotspot?.dataset.id || null
     };
   } else if (pointers.size === 2) {
     const points = Array.from(pointers.values());
@@ -629,6 +676,14 @@ function endPointer(event) {
   if (pointers.size === 0) {
     if (wasTap) {
       const now = performance.now();
+      const tappedLocation = dragStart.hotspotId ? getLocationById(dragStart.hotspotId) : null;
+      if (tappedLocation) {
+        suppressHotspotClickUntil = now + 350;
+        selectLocation(tappedLocation, true);
+        dragStart = null;
+        pinchStart = null;
+        return;
+      }
       const distance = Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y);
       if (now - lastTap.time < 280 && distance < 28) {
         setScaleAt(view.scale < 2.2 ? 2.45 : wideScale, event.clientX, event.clientY);
@@ -701,10 +756,100 @@ function closeWelcomeModal() {
   welcomeModal.classList.remove("is-open");
 }
 
+function openQuiz() {
+  closeWelcomeModal();
+  quizIndex = 0;
+  quizPoints = 0;
+  quizAnswered = false;
+  quizModal.classList.add("is-open");
+  quizModal.setAttribute("aria-hidden", "false");
+  renderQuizQuestion();
+}
+
+function closeQuizModal() {
+  quizModal.classList.remove("is-open");
+  quizModal.setAttribute("aria-hidden", "true");
+}
+
+function renderQuizQuestion() {
+  const question = quizQuestions[quizIndex];
+  quizAnswered = false;
+  quizTitle.textContent = "KOMPAS Quiz Mode";
+  quizProgress.textContent = `Question ${quizIndex + 1} of ${quizQuestions.length}`;
+  quizScore.textContent = `Score ${quizPoints}`;
+  quizQuestion.textContent = question.question;
+  quizFeedback.textContent = "";
+  quizNext.textContent = quizIndex === quizQuestions.length - 1 ? "See Score" : "Next";
+  quizNext.disabled = true;
+  quizOptions.innerHTML = "";
+
+  question.options.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "quiz-option";
+    button.textContent = option;
+    button.addEventListener("click", () => answerQuiz(button, option));
+    quizOptions.append(button);
+  });
+}
+
+function answerQuiz(button, answer) {
+  if (quizAnswered) return;
+  const question = quizQuestions[quizIndex];
+  const isCorrect = answer === question.answer;
+  quizAnswered = true;
+  if (isCorrect) quizPoints += 1;
+  quizScore.textContent = `Score ${quizPoints}`;
+  quizFeedback.textContent = isCorrect ? "Correct. Nice navigation instincts." : `Not quite. Answer: ${question.answer}.`;
+
+  quizOptions.querySelectorAll(".quiz-option").forEach((optionButton) => {
+    optionButton.disabled = true;
+    if (optionButton.textContent === question.answer) optionButton.classList.add("is-correct");
+  });
+  if (!isCorrect) button.classList.add("is-wrong");
+  quizNext.disabled = false;
+}
+
+function showQuizResult() {
+  quizTitle.textContent = "Quiz Complete";
+  quizProgress.textContent = "Finished";
+  quizScore.textContent = `Score ${quizPoints}/${quizQuestions.length}`;
+  quizQuestion.textContent = quizPoints >= 4 ? "You are ready to chart your Atenean journey." : "Good start. Explore the map and try again.";
+  quizFeedback.textContent = "";
+  quizOptions.innerHTML = "";
+  quizNext.textContent = "Play Again";
+  quizNext.disabled = false;
+}
+
+function advanceQuiz() {
+  if (quizIndex >= quizQuestions.length) {
+    openQuiz();
+    return;
+  }
+  if (quizIndex === quizQuestions.length - 1) {
+    quizIndex += 1;
+    showQuizResult();
+    return;
+  }
+  quizIndex += 1;
+  renderQuizQuestion();
+}
+
 closeWelcome.addEventListener("click", closeWelcomeModal);
 startMap.addEventListener("click", closeWelcomeModal);
 welcomeModal.addEventListener("click", (event) => {
   if (event.target === welcomeModal) closeWelcomeModal();
+});
+
+splashScreen.addEventListener("animationend", () => {
+  splashScreen.remove();
+});
+
+quizLaunch.addEventListener("click", openQuiz);
+closeQuiz.addEventListener("click", closeQuizModal);
+quizNext.addEventListener("click", advanceQuiz);
+quizModal.addEventListener("click", (event) => {
+  if (event.target === quizModal) closeQuizModal();
 });
 
 closePanel.addEventListener("click", () => {
@@ -765,6 +910,7 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeResults();
     closeWelcomeModal();
+    closeQuizModal();
   }
 });
 
