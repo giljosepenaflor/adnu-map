@@ -248,6 +248,8 @@ const quizQuestion = document.querySelector("#quizQuestion");
 const quizOptions = document.querySelector("#quizOptions");
 const quizFeedback = document.querySelector("#quizFeedback");
 const quizNext = document.querySelector("#quizNext");
+const fullMapModal = document.querySelector("#fullMapModal");
+const closeFullMap = document.querySelector("#closeFullMap");
 const clearSearch = document.querySelector(".clear-search");
 const infoPanel = document.querySelector("#infoPanel");
 const closePanel = document.querySelector("#closePanel");
@@ -591,6 +593,17 @@ function resetMap() {
   animateTo({ x: 0, y: 0, scale: coverScale }, 360);
 }
 
+function clearActiveLocation() {
+  activeLocation = null;
+  renderSelection(null);
+  updateActiveControls(null);
+  infoPanel.classList.remove("is-open");
+  infoPanel.setAttribute("aria-hidden", "true");
+  searchInput.value = "";
+  clearSearch.classList.remove("is-visible");
+  tapHint.classList.remove("is-hidden");
+}
+
 function setupInitialView() {
   const viewportRect = viewport.getBoundingClientRect();
   const mapWidth = Math.min(viewportRect.width, viewportRect.height * 1.6);
@@ -699,6 +712,9 @@ function endPointer(event) {
         pinchStart = null;
         return;
       }
+      if (activeLocation && !event.target.closest(".hotspot")) {
+        clearActiveLocation();
+      }
       const distance = Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y);
       if (now - lastTap.time < 280 && distance < 28) {
         setScaleAt(view.scale < 2.2 ? 2.45 : wideScale, event.clientX, event.clientY);
@@ -755,7 +771,8 @@ directoryToggle.addEventListener("click", () => {
 wideViewButton.addEventListener("click", showWideView);
 
 viewLabeledMapButton.addEventListener("click", () => {
-  window.open("assets/labeled-map-reference.png", "_blank", "noopener");
+  fullMapModal.classList.add("is-open");
+  fullMapModal.setAttribute("aria-hidden", "false");
 });
 
 downloadMapButton.addEventListener("click", () => {
@@ -784,6 +801,11 @@ function openQuiz() {
 function closeQuizModal() {
   quizModal.classList.remove("is-open");
   quizModal.setAttribute("aria-hidden", "true");
+}
+
+function closeFullMapModal() {
+  fullMapModal.classList.remove("is-open");
+  fullMapModal.setAttribute("aria-hidden", "true");
 }
 
 function renderQuizQuestion() {
@@ -863,9 +885,13 @@ splashScreen.addEventListener("animationend", () => {
 quizLaunch.addEventListener("click", openQuiz);
 mobileQuizLaunch.addEventListener("click", openQuiz);
 closeQuiz.addEventListener("click", closeQuizModal);
+closeFullMap.addEventListener("click", closeFullMapModal);
 quizNext.addEventListener("click", advanceQuiz);
 quizModal.addEventListener("click", (event) => {
   if (event.target === quizModal) closeQuizModal();
+});
+fullMapModal.addEventListener("click", (event) => {
+  if (event.target === fullMapModal) closeFullMapModal();
 });
 
 closePanel.addEventListener("click", () => {
@@ -927,6 +953,7 @@ document.addEventListener("keydown", (event) => {
     closeResults();
     closeWelcomeModal();
     closeQuizModal();
+    closeFullMapModal();
   }
 });
 
