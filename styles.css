@@ -89,7 +89,7 @@ button {
 .directory-toggle {
   position: fixed;
   z-index: 20;
-  top: calc(max(8px, env(safe-area-inset-top)) + 58px);
+  top: calc(max(8px, env(safe-area-inset-top)) + 112px);
   left: 66px;
   display: grid;
   width: 30px;
