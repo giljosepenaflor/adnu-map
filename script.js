@@ -258,6 +258,7 @@ let dragStart = null;
 let pinchStart = null;
 let sheetDrag = null;
 let lastTap = { time: 0, x: 0, y: 0 };
+let suppressHotspotClickUntil = 0;
 const defaultLocationId = "administration-building";
 
 function clamp(value, min, max) {
@@ -369,11 +370,9 @@ function renderHotspots() {
     marker.className = "map-code-marker";
     marker.textContent = location.abbreviation;
     button.append(marker);
-    button.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
     button.addEventListener("click", (event) => {
       event.stopPropagation();
+      if (performance.now() < suppressHotspotClickUntil) return;
       selectLocation(location, true);
     });
     hotspotsEl.append(button);
@@ -569,7 +568,6 @@ function showWideView() {
 }
 
 viewport.addEventListener("pointerdown", (event) => {
-  if (event.target.closest(".hotspot")) return;
   cancelAnimationFrame(animationFrame);
   viewport.setPointerCapture(event.pointerId);
   pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
@@ -593,6 +591,7 @@ viewport.addEventListener("pointerdown", (event) => {
       mapX: (centerX - view.x) / view.scale,
       mapY: (centerY - view.y) / view.scale
     };
+    suppressHotspotClickUntil = performance.now() + 350;
   }
 });
 
@@ -622,6 +621,9 @@ viewport.addEventListener("pointermove", (event) => {
 
 function endPointer(event) {
   const wasTap = dragStart && !dragStart.moved && pointers.size === 1;
+  if (dragStart?.moved || pinchStart) {
+    suppressHotspotClickUntil = performance.now() + 250;
+  }
   pointers.delete(event.pointerId);
   viewport.classList.toggle("is-dragging", pointers.size > 0);
   if (pointers.size === 0) {
